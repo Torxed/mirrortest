@@ -39,8 +39,15 @@ main_options.add_argument(
 	nargs="?",
 	help="Sets the TIER0 URL (https://<user>:<password>@repos.archlinux.org)"
 )
+main_options.add_argument(
+	"--mail",
+	required=False,
+	default=False,
+	action="store_true",
+	help="Attempts to open your mail client of choice with a prepped message"
+)
 args, unknown = main_options.parse_known_args()
-
+configuration.email = args.mail
 
 def run() -> None:
 	try:

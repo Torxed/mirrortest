@@ -9,6 +9,7 @@ class Configuration():
 	DEFAULT_TIER_NR :int = 2  # Which is the default tier to assume without giving --tier
 	USERNAME :str | None = None
 	PASSWORD :str | None = None
+	email :bool = False
 
 
 class Mirror(pydantic.BaseModel):
