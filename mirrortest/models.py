@@ -24,7 +24,7 @@ class Mirror(pydantic.BaseModel):
 	arch :str = 'x86_64'
 
 	@pydantic.validator('url', pre=True)
-	def validate_url(cls, url :str) -> str:
+	def validate_url(cls, url):
 		if not url.startswith('http'):
 			url = f"https://{url}"
 
@@ -36,7 +36,7 @@ class Mirror(pydantic.BaseModel):
 
 class Tier0(Mirror):
 	@pydantic.root_validator
-	def update_times(cls, values :typing.Dict[str, typing.Union[str, datetime.datetime]]) -> typing.Dict[str, typing.Union[str, datetime.datetime]]:
+	def update_times(cls, values):
 		"""
 		At this stage, the class is not instanciated.
 		So we will update the dictionary of values before being set
@@ -48,7 +48,7 @@ class Tier0(Mirror):
 		return values
 
 	@staticmethod
-	def request(url :str, path :str) -> bytes:
+	def request(url, path):
 		from .session import configuration
 
 		"""
@@ -77,7 +77,7 @@ class Tier0(Mirror):
 
 		return bytes(contents)
 
-	def get_db(self, repo :str) -> bytes:
+	def get_db(self, repo):
 		"""
 		Returns a given gzipped database from this mirror
 		"""
@@ -89,7 +89,7 @@ class MirrorTester(Mirror):
 	tier_0 :Tier0
 
 	@pydantic.root_validator
-	def update_times(cls, values :typing.Dict[str, typing.Union[str, datetime.datetime]]) -> typing.Dict[str, typing.Union[str, datetime.datetime]]:
+	def update_times(cls, values):
 		"""
 		At this stage, the class is not instanciated.
 		So we will update the dictionary of values before being set
@@ -101,7 +101,7 @@ class MirrorTester(Mirror):
 		return values
 
 	@staticmethod
-	def request(url :str, path :str) -> bytes:
+	def request(url, path):
 		if path[0] == '/':
 			path = path[1:]
 
@@ -110,11 +110,11 @@ class MirrorTester(Mirror):
 
 		return bytes(data)
 
-	def get_db(self, repo :str) -> bytes:
+	def get_db(self, repo):
 		return MirrorTester.request(self.url, f'/{repo}/os/{self.arch}/{repo}.db.tar.gz')
 
 	@property
-	def valid(self) -> bool:
+	def valid(self):
 		from .session import configuration
 
 		if (tier0_sync := self.tier_0.last_sync) is None or (self_sync := self.last_sync) is None:
