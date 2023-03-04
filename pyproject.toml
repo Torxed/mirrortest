@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools ~= 58.0"]
+
+[project]
+name = "mirrortest"
+authors = [
+	{name = "Anton Hvornum", email = "anton@hvornum.se"}
+]
+description = "Test the health of a given mirror."
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["arch", "linux", "mirror", "test", "health", "sync"]
+classifiers = [
+	"Framework :: Pydantic",
+	"Programming Language :: Python :: 3"
+]
+dependencies = [
+	"pydantic"
+]
+dynamic = [
+	"version"
+]
+
+[project.scripts]
+mirrortest = "mirrortest.tooling.cli:run"
+
+[tool.setuptools.dynamic]
+version = {attr = "mirrortest.__version__"}
