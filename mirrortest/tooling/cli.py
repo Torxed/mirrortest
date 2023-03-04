@@ -2,6 +2,7 @@ import dataclasses
 import argparse
 import pathlib
 import json
+import urllib.error
 
 from ..models import (
 	MirrorTester,
@@ -42,7 +43,19 @@ args, unknown = main_options.parse_known_args()
 
 
 def run() -> None:
-	good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=Tier0(url=args.tier0)).valid
+	try:
+		good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=Tier0(url=args.tier0)).valid
+	except urllib.error.HTTPError as error:
+		good_exit = False
+		print(f"""
+			Hi!
+
+			Your mirror {args.mirror} returns {error.code} and has therefor been marked as inactive.
+			Please correct this and get back to us if you wish to re-activate the mirror.
+
+			Best regards,
+			//Arch Linux mirror team
+		""".replace('\t', ''))
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()

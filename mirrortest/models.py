@@ -117,7 +117,17 @@ class MirrorTester(Mirror):
 		from .session import configuration
 
 		if (tier0_sync := self.tier_0.last_sync) is None or (self_sync := self.last_sync) is None:
-			print(f"Could not get Tier0 sync ({tier0_sync is None}) or mirror did not accept sync ({self_sync is None})")
+			if tier0_sync is None:
+				print("Critical! Could not get Tier0 sync.")
+			elif self_sync is None:
+				print(f"Hi.\n\nYour Arch Linux mirror {self.url} does not accept requests properly\n\nPlease investigate and get back to us when you have found a fix.\n\nBest regards,\n//Arch mirror admin team")
+			return False
+
+		if (tier0_update := self.tier_0.last_update) is None or (self_update := self.last_update) is None:
+			if tier0_update is None:
+				print("Critical! Could not get Tier0 sync.")
+			elif self_update is None:
+				print(f"Hi.\n\nYour Arch Linux mirror {self.url} does not accept requests properly\n\nPlease investigate and get back to us when you have found a fix.\n\nBest regards,\n//Arch mirror admin team")
 			return False
 
 		last_sync_delta = tier0_sync - self_sync
@@ -127,6 +137,15 @@ class MirrorTester(Mirror):
 
 		if self.tier == 1 and last_sync_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
 			print(f"{self.url} is out of sync {last_sync_delta}")
+			return False
+
+		last_update_delta = tier0_update - self_update
+		if self.tier == 2 and last_update_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
+			print(f"{self.url} is not updated in {last_update_delta}")
+			return False
+
+		if self.tier == 1 and last_update_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
+			print(f"{self.url} is not updated in {last_update_delta}")
 			return False
 
 		return False
