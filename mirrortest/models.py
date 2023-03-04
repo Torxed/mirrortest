@@ -130,15 +130,6 @@ class MirrorTester(Mirror):
 				print(f"Hi.\n\nYour Arch Linux mirror {self.url} does not accept requests properly\n\nPlease investigate and get back to us when you have found a fix.\n\nBest regards,\n//Arch mirror admin team")
 			return False
 
-		last_sync_delta = tier0_sync - self_sync
-		if self.tier == 2 and last_sync_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
-			print(f"{self.url} is out of sync by {last_sync_delta}")
-			return False
-
-		if self.tier == 1 and last_sync_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
-			print(f"{self.url} is out of sync {last_sync_delta}")
-			return False
-
 		last_update_delta = tier0_update - self_update
 		if self.tier == 2 and last_update_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
 			print(f"{self.url} is not updated in {last_update_delta}")
@@ -148,4 +139,16 @@ class MirrorTester(Mirror):
 			print(f"{self.url} is not updated in {last_update_delta}")
 			return False
 
-		return False
+		last_sync_delta = tier0_sync - self_sync
+		if self.tier == 2 and last_sync_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
+			print(f"{self.url} is out of sync by {last_sync_delta}")
+			return False
+
+		if self.tier == 1 and last_sync_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
+			print(f"{self.url} is out of sync {last_sync_delta}")
+			return False
+
+		print(f"Last synced: {last_sync_delta}")
+		print(f"Last updated: {last_update_delta}")
+
+		return True
