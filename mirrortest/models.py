@@ -122,14 +122,14 @@ class MirrorTester(Mirror):
 			if tier0_sync is None:
 				print("Critical! Could not get Tier0 sync.")
 			elif self_sync is None:
-				print(f"Hi.\n\nYour Arch Linux mirror {self.url} does not accept requests properly\n\nPlease investigate and get back to us when you have found a fix.\n\nBest regards,\n//Arch mirror admin team")
+				print(f"{self.url} does not appear to have a lastsync available.")
 			return False
 
 		if (tier0_update := self.tier_0.last_update) is None or (self_update := self.last_update) is None:
 			if tier0_update is None:
 				print("Critical! Could not get Tier0 sync.")
 			elif self_update is None:
-				print(f"Hi.\n\nYour Arch Linux mirror {self.url} does not accept requests properly\n\nPlease investigate and get back to us when you have found a fix.\n\nBest regards,\n//Arch mirror admin team")
+				print(f"{self.url} does not appear to have a lastupdate available.")
 			return False
 
 		last_update_delta = tier0_update - self_update
@@ -138,16 +138,27 @@ class MirrorTester(Mirror):
 			if configuration.email:
 				mailto("", "", "mirrors@archlinux.org", None, f"Arch Linux mirror {self.url} is out of date", f"""Hi!
 
-	Mirror {self.url} is out of date for {last_update_delta}.
-	Please correct this and notify us.
+					Mirror {self.url} is out of date for {last_update_delta}.
+					Please correct this and notify us.
 
-	The mirror has been marked as inactive for now.
+					The mirror has been marked as inactive for nhttpsow.
 
-	//Arch Linux mirror admins""")
+					//Arch Linux mirror admins""".replace('\t', '')
+				)
 			return False
 
 		if self.tier == 1 and last_update_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
 			print(f"{self.url} is not updated in {last_update_delta}")
+			if configuration.email:
+				mailto("", "", "mirrors@archlinux.org", None, f"Arch Linux mirror {self.url} is out of date", f"""Hi!
+
+					Mirror {self.url} is out of date for {last_update_delta}.
+					Please correct this and notify us.
+
+					The mirror has been marked as inactive for nhttpsow.
+
+					//Arch Linux mirror admins""".replace('\t', '')
+				)
 			return False
 
 		last_sync_delta = tier0_sync - self_sync
