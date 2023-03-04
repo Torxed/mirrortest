@@ -22,6 +22,7 @@ _open = None
 
 fileopen = open
 
+
 class BaseController(object):
 	'''Base class for open program controllers.'''
 
@@ -48,8 +49,7 @@ class Controller(BaseController):
 			closefds = True
 			startupinfo = None
 
-		if (os.environ.get('DISPLAY') or sys.platform[:3] == 'win' or
-													sys.platform == 'darwin'):
+		if (os.environ.get('DISPLAY') or sys.platform[:3] == 'win' or sys.platform == 'darwin'):
 			inout = fileopen(os.devnull, 'r+')
 		else:
 			# for TTY programs, we need stdin/out
@@ -62,9 +62,15 @@ class Controller(BaseController):
 		if not setsid:
 			setsid = getattr(os, 'setpgrp', None)
 
-		pipe = subprocess.Popen(cmdline, stdin=inout, stdout=inout,
-								stderr=inout, close_fds=closefds,
-								preexec_fn=setsid, startupinfo=startupinfo)
+		pipe = subprocess.Popen(
+			cmdline,
+			stdin=inout,
+			stdout=inout,
+			stderr=inout,
+			close_fds=closefds,
+			preexec_fn=setsid,
+			startupinfo=startupinfo
+		)
 
 		# It is assumed that this kind of tools (gnome-open, kfmclient,
 		# exo-open, xdg-open and open for OSX) immediately exit after lauching
@@ -108,14 +114,14 @@ if sys.platform[:3] == 'win':
 
 # Platform support for MacOS
 elif sys.platform == 'darwin':
-	_controllers['open']= Controller('open')
+	_controllers['open'] = Controller('open')
 	_open = _controllers['open'].open
 
 
 # Platform support for Unix
 else:
 
-	import subprocess, stat
+	import stat
 
 	# @WARNING: use the private API of the webbrowser module
 	# from webbrowser import _iscommand
@@ -141,7 +147,6 @@ else:
 			if _isexecutable(exe):
 				return True
 		return False
-
 
 	class KfmClient(Controller):
 		'''Controller for the KDE kfmclient program.'''
@@ -194,7 +199,6 @@ else:
 
 		return desktop_environment
 
-
 	def register_X_controllers():
 		if _iscommand('kfmclient'):
 			_controllers['kde-open'] = KfmClient()
@@ -222,7 +226,6 @@ else:
 			else:
 				return webbrowser.open
 
-
 	if os.environ.get("DISPLAY"):
 		register_X_controllers()
 	_open = get()
@@ -248,9 +251,13 @@ def _fix_addersses(**kwargs):
 		except KeyError:
 			pass
 		except TypeError:
-			raise TypeError('string or sequence expected for "%s", '
-							'%s found' % (headername,
-										  type(headervalue).__name__))
+			raise TypeError(
+				'string or sequence expected for "%s", '
+				'%s found' % (
+					headername,
+					type(headervalue).__name__
+				)
+			)
 		else:
 			translation_map = {'%': '%25', '&': '%26', '?': '%3F'}
 			for char, replacement in list(translation_map.items()):
@@ -273,7 +280,7 @@ def mailto_format(**kwargs):
 			if headername in ('address', 'to', 'cc', 'bcc'):
 				parts.append('%s=%s' % (headername, headervalue))
 			else:
-				headervalue = encode_rfc2231(headervalue, charset="utf-8")[7:] # @TODO: check
+				headervalue = encode_rfc2231(headervalue, charset="utf-8")[7:]  # @TODO: check
 				parts.append('%s=%s' % (headername, headervalue))
 
 	mailto_string = 'mailto:%s' % kwargs.get('address', '')
@@ -284,7 +291,8 @@ def mailto_format(**kwargs):
 
 
 def mailto(address, to=None, cc=None, bcc=None, subject=None, body=None):
-	'''Send an e-mail using the user's preferred composer.
+	""" # noqa: E101
+	Send an e-mail using the user's preferred composer.
 
 	Open the user's preferred e-mail composer in order to send a mail to
 	address(es) that must follow the syntax of RFC822. Multiple addresses
@@ -306,7 +314,7 @@ def mailto(address, to=None, cc=None, bcc=None, subject=None, body=None):
 	attach  - specify an attachment for the e-mail. file must point to
 			  an existing file (UNSUPPORTED)
 
-	'''
+	"""
 
 	mailto_string = mailto_format(**locals())
 	return open(mailto_string)

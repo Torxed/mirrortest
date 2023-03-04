@@ -49,6 +49,7 @@ main_options.add_argument(
 args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
 
+
 def run() -> None:
 	try:
 		good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=Tier0(url=args.tier0)).valid

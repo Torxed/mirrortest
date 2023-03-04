@@ -136,7 +136,13 @@ class MirrorTester(Mirror):
 		if self.tier == 2 and last_update_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
 			print(f"{self.url} is not updated in {last_update_delta}")
 			if configuration.email:
-				mailto("", "", "mirrors@archlinux.org", None, f"Arch Linux mirror {self.url} is out of date", f"""Hi!
+				mailto(
+					"",
+					"",
+					"mirrors@archlinux.org",
+					None,
+					f"Arch Linux mirror {self.url} is out of date",
+					f"""Hi!
 
 					Mirror {self.url} is out of date for {last_update_delta}.
 					Please correct this and notify us.
@@ -150,7 +156,13 @@ class MirrorTester(Mirror):
 		if self.tier == 1 and last_update_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
 			print(f"{self.url} is not updated in {last_update_delta}")
 			if configuration.email:
-				mailto("", "", "mirrors@archlinux.org", None, f"Arch Linux mirror {self.url} is out of date", f"""Hi!
+				mailto(
+					"",
+					"",
+					"mirrors@archlinux.org",
+					None,
+					f"Arch Linux mirror {self.url} is out of date",
+					f"""Hi!
 
 					Mirror {self.url} is out of date for {last_update_delta}.
 					Please correct this and notify us.
