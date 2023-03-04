@@ -1,7 +1,6 @@
 import urllib.request
 import datetime
 import pydantic
-import typing
 
 
 @pydantic.dataclasses.dataclass

@@ -12,8 +12,21 @@ from ..session import configuration
 
 # Parse script arguments and use defaults from configuration where needed
 main_options = argparse.ArgumentParser(description="Test the health of a given mirror.", add_help=True)
-main_options.add_argument("--tier", type=int, default=configuration.DEFAULT_TIER_NR, nargs="?", help="Dictates what Tier the mirror you're testing is")
-main_options.add_argument("--mirror", required=True, default=None, type=str, nargs="?", help="The URL of a mirror you would like to test")
+main_options.add_argument(
+	"--tier",
+	type=int,
+	default=configuration.DEFAULT_TIER_NR,
+	nargs="?",
+	help="Dictates what Tier the mirror you're testing is"
+)
+main_options.add_argument(
+	"--mirror",
+	required=True,
+	default=None,
+	type=str,
+	nargs="?",
+	help="The URL of a mirror you would like to test"
+)
 # --tier0 is only required on the first run to set the credentials
 # after which it's saved in ~/.config/mirrortester/config.json
 # (apologies for the long line, but it looks visually appalling broken up)
