@@ -15,5 +15,6 @@ if (config := pathlib.Path('~/.config/mirrortester/config.json').expanduser()).e
 	[setattr(configuration, key, val) for key, val in json_config.items()]  # type: ignore
 
 	# Update configuration from environment variables (if any)
-	for key, val in os.environ.items():
-		[setattr(configuration, key, val) for key, val in json_config.items()]  # type: ignore
+
+# Update configuration from environment variables (if any)
+[setattr(configuration, key, val) for key, val in os.environ.items()]  # type: ignore
