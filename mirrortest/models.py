@@ -147,7 +147,7 @@ class MirrorTester(Mirror):
 					Mirror {self.url} is out of date for {last_update_delta}.
 					Please correct this and notify us.
 
-					The mirror has been marked as inactive for nhttpsow.
+					The mirror has been marked as inactive for now.
 
 					//Arch Linux mirror admins""".replace('\t', '')
 				)
@@ -167,7 +167,7 @@ class MirrorTester(Mirror):
 					Mirror {self.url} is out of date for {last_update_delta}.
 					Please correct this and notify us.
 
-					The mirror has been marked as inactive for nhttpsow.
+					The mirror has been marked as inactive for now.
 
 					//Arch Linux mirror admins""".replace('\t', '')
 				)

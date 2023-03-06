@@ -9,6 +9,7 @@ from ..models import (
 	Tier0
 )
 
+from ..mailhandle import mailto
 from ..session import configuration
 
 # Parse script arguments and use defaults from configuration where needed
@@ -64,6 +65,22 @@ def run() -> None:
 			Best regards,
 			//Arch Linux mirror team
 		""".replace('\t', ''))
+		if configuration.email:
+			mailto(
+				"",
+				"",
+				"mirrors@archlinux.org",
+				None,
+				f"Arch Linux mirror {args.mirror} is out of date",
+				f"""Hi!
+
+				Your mirror {args.mirror} returns {error.code}.
+				Please correct this and notify us.
+
+				The mirror has been marked as inactive for now.
+
+				//Arch Linux mirror admins""".replace('\t', '')
+			)
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
