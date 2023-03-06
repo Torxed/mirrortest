@@ -4,6 +4,7 @@ import pathlib
 import json
 import time
 import urllib.error
+import urllib.request
 
 from ..models import (
 	MirrorTester,
@@ -52,27 +53,26 @@ args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
 
 
-def check_mirror(url, tier, tier_0):
-	
-
-	return good_exit
-
 def run() -> None:
 	tier_0 = Tier0(url=args.tier0)
 
 	if args.mirror != '*':
+		_error :urllib.error.URLError | urllib.error.HTTPError | None = None
+		_error_code = -1
 		try:
-			good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=tier_0).valid
+			MirrorTester(tier=args.tier, url=args.mirror, tier_0=tier_0).valid
 		except urllib.error.HTTPError as error:
-			good_exit = False
+			_error = error
+			_error_code = error.code
 		except urllib.error.URLError as error:
-			good_exit = False
+			_error = error
+			_error_code = -1
 
-		if not (good_exit := check_mirror(args.mirror, tier=args.tier, tier_0=tier_0)):
+		if _error:
 			print(f"""
 				Hi!
 
-				Your mirror {args.mirror} returns {error.code} and has therefor been marked as inactive.
+				Your mirror {args.mirror} returns {_error_code} and has therefor been marked as inactive.
 				Please correct this and get back to us if you wish to re-activate the mirror.
 
 				Best regards,
@@ -87,7 +87,7 @@ def run() -> None:
 					f"Arch Linux mirror {args.mirror} is out of date",
 					f"""Hi!
 
-					Your mirror {args.mirror} returns {error.code}.
+					Your mirror {args.mirror} returns {_error_code}.
 					Please correct this and notify us.
 
 					The mirror has been marked as inactive for now.
@@ -99,7 +99,6 @@ def run() -> None:
 		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
 		data = response.read()
 
-		#bad_mirrors = {}
 		with open(f'output_{time.time()}.log', 'w') as log:
 			for server in data.split(b'\n'):
 
@@ -113,11 +112,10 @@ def run() -> None:
 					url, _ = url.split(b'/$repo', 1)
 					url = url.strip().decode()
 
-
 					try:
 						mirror = MirrorTester(tier=2, url=url, tier_0=tier_0)
 						good_exit = mirror.valid
-						time_delta_str = tier_0.last_update - mirror.last_update
+						time_delta_str = tier_0.last_update - mirror.last_update  # type: ignore
 						time_delta_int = time_delta_str.total_seconds()
 					except urllib.error.HTTPError as error:
 						good_exit = False
@@ -127,12 +125,14 @@ def run() -> None:
 						good_exit = False
 						time_delta_str = str(error)
 						time_delta_int = -2
+					except TimeoutError as error:
+						good_exit = False
+						time_delta_str = str(error)
+						time_delta_int = -3
 
 					if not good_exit:
-						#bad_mirrors[url] = {'obj' : mirror, 'delta' : tier_0.last_update - mirror.last_update}
 						log.write(f"{url},{time_delta_int},\"{time_delta_str}\"\n")
 						log.flush()
-
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()

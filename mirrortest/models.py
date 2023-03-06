@@ -85,8 +85,8 @@ class Tier0(Mirror):
 		return Tier0.request(self.url, f'/{repo}/os/{self.arch}/{repo}.db.tar.gz')
 
 	def refresh(self):
-		self.last_update = datetime.datetime.fromtimestamp(int(Tier0.request(str(values['url']), '/lastupdate').strip()))
-		self.last_sync = datetime.datetime.fromtimestamp(int(Tier0.request(str(values['url']), '/lastsync').strip()))
+		self.last_update = datetime.datetime.fromtimestamp(int(Tier0.request(str(self.url), '/lastupdate').strip()))
+		self.last_sync = datetime.datetime.fromtimestamp(int(Tier0.request(str(self.url), '/lastsync').strip()))
 
 
 class MirrorTester(Mirror):
