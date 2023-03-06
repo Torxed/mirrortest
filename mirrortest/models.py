@@ -8,6 +8,7 @@ class Configuration():
 	# Some sane default values (in case no config.json was found)
 	MAX_TIER1_SYNC_DRIFT_SEC :int = 3600 * 2  # 2h
 	MAX_TIER2_SYNC_DRIFT_SEC :int = 3600 * 6  # 6h
+	CON_TIMEOUT :int = 5
 	DEFAULT_TIER_NR :int = 2  # Which is the default tier to assume without giving --tier
 	USERNAME :str | None = None
 	PASSWORD :str | None = None
@@ -72,7 +73,7 @@ class Tier0(Mirror):
 		urllib.request.install_opener(opener)
 
 		req = urllib.request.Request(request_url)
-		resp = urllib.request.urlopen(req)
+		resp = urllib.request.urlopen(req, timeout=configuration.CON_TIMEOUT)
 		contents = resp.read()
 
 		return bytes(contents)
@@ -82,6 +83,10 @@ class Tier0(Mirror):
 		Returns a given gzipped database from this mirror
 		"""
 		return Tier0.request(self.url, f'/{repo}/os/{self.arch}/{repo}.db.tar.gz')
+
+	def refresh(self):
+		self.last_update = datetime.datetime.fromtimestamp(int(Tier0.request(str(values['url']), '/lastupdate').strip()))
+		self.last_sync = datetime.datetime.fromtimestamp(int(Tier0.request(str(values['url']), '/lastsync').strip()))
 
 
 class MirrorTester(Mirror):
@@ -102,10 +107,12 @@ class MirrorTester(Mirror):
 
 	@staticmethod
 	def request(url, path):
+		from .session import configuration
+
 		if path[0] == '/':
 			path = path[1:]
 
-		response = urllib.request.urlopen(f"{url}/{path}")
+		response = urllib.request.urlopen(f"{url}/{path}", timeout=configuration.CON_TIMEOUT)
 		data = response.read()
 
 		return bytes(data)

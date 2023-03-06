@@ -2,6 +2,7 @@ import dataclasses
 import argparse
 import pathlib
 import json
+import time
 import urllib.error
 
 from ..models import (
@@ -51,36 +52,87 @@ args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
 
 
+def check_mirror(url, tier, tier_0):
+	
+
+	return good_exit
+
 def run() -> None:
-	try:
-		good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=Tier0(url=args.tier0)).valid
-	except urllib.error.HTTPError as error:
-		good_exit = False
-		print(f"""
-			Hi!
+	tier_0 = Tier0(url=args.tier0)
 
-			Your mirror {args.mirror} returns {error.code} and has therefor been marked as inactive.
-			Please correct this and get back to us if you wish to re-activate the mirror.
+	if args.mirror != '*':
+		try:
+			good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=tier_0).valid
+		except urllib.error.HTTPError as error:
+			good_exit = False
+		except urllib.error.URLError as error:
+			good_exit = False
 
-			Best regards,
-			//Arch Linux mirror team
-		""".replace('\t', ''))
-		if configuration.email:
-			mailto(
-				"",
-				"",
-				"mirrors@archlinux.org",
-				None,
-				f"Arch Linux mirror {args.mirror} is out of date",
-				f"""Hi!
+		if not (good_exit := check_mirror(args.mirror, tier=args.tier, tier_0=tier_0)):
+			print(f"""
+				Hi!
 
-				Your mirror {args.mirror} returns {error.code}.
-				Please correct this and notify us.
+				Your mirror {args.mirror} returns {error.code} and has therefor been marked as inactive.
+				Please correct this and get back to us if you wish to re-activate the mirror.
 
-				The mirror has been marked as inactive for now.
+				Best regards,
+				//Arch Linux mirror team
+			""".replace('\t', ''))
+			if configuration.email:
+				mailto(
+					"",
+					"",
+					"mirrors@archlinux.org",
+					None,
+					f"Arch Linux mirror {args.mirror} is out of date",
+					f"""Hi!
 
-				//Arch Linux mirror admins""".replace('\t', '')
-			)
+					Your mirror {args.mirror} returns {error.code}.
+					Please correct this and notify us.
+
+					The mirror has been marked as inactive for now.
+
+					//Arch Linux mirror admins""".replace('\t', '')
+				)
+	else:
+		# Retrieve complete mirror list
+		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
+		data = response.read()
+
+		#bad_mirrors = {}
+		with open(f'output_{time.time()}.log', 'w') as log:
+			for server in data.split(b'\n'):
+
+				if b'#Server = ' not in server:
+					continue
+				elif len(server.strip()) == 0:
+					continue
+
+				if server.startswith(b'#Server'):
+					_, url = server.split(b'=', 1)
+					url, _ = url.split(b'/$repo', 1)
+					url = url.strip().decode()
+
+
+					try:
+						mirror = MirrorTester(tier=2, url=url, tier_0=tier_0)
+						good_exit = mirror.valid
+						time_delta_str = tier_0.last_update - mirror.last_update
+						time_delta_int = time_delta_str.total_seconds()
+					except urllib.error.HTTPError as error:
+						good_exit = False
+						time_delta_str = str(error)
+						time_delta_int = -1
+					except urllib.error.URLError as error:
+						good_exit = False
+						time_delta_str = str(error)
+						time_delta_int = -2
+
+					if not good_exit:
+						#bad_mirrors[url] = {'obj' : mirror, 'delta' : tier_0.last_update - mirror.last_update}
+						log.write(f"{url},{time_delta_int},\"{time_delta_str}\"\n")
+						log.flush()
+
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
