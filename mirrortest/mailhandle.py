@@ -229,6 +229,7 @@ else:
 	if os.environ.get("DISPLAY"):
 		register_X_controllers()
 	_open = get()
+	print(_open)
 
 
 def open(filename):
