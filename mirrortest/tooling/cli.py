@@ -116,8 +116,8 @@ def run() -> None:
 						mirror = MirrorTester(tier=2, url=url, tier_0=tier_0)
 						good_exit = mirror.valid
 
-						if last_update := mirror.last_update:
-							time_delta_str = tier_0.last_update - mirror.last_update  # type: ignore
+						if last_update := mirror.last_update:  # type: ignore
+							time_delta_str = tier_0.last_update - last_update  # type: ignore
 							time_delta_int = time_delta_str.total_seconds()
 						else:
 							time_delta_str = 'Could not find /lastupdate on mirror'
