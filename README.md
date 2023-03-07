@@ -1,6 +1,10 @@
 # mirrortest
 Test a given Arch Linux mirror against the Tier0 mirror
 
+[![flake8 linting](https://github.com/Torxed/mirrortest/actions/workflows/flake8.yaml/badge.svg)](https://github.com/Torxed/mirrortest/actions/workflows/flake8.yaml)<br>
+[![mypy type checking](https://github.com/Torxed/mirrortest/actions/workflows/mypy.yaml/badge.svg)](https://github.com/Torxed/mirrortest/actions/workflows/mypy.yaml)<br>
+[![pytest test validation](https://github.com/Torxed/mirrortest/actions/workflows/pytest.yaml/badge.svg)](https://github.com/Torxed/mirrortest/actions/workflows/pytest.yaml)
+
 # Installing
 
 ```bash
