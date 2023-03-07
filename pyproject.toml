@@ -21,6 +21,13 @@ dynamic = [
 	"version"
 ]
 
+[project.optional-dependencies]
+test = [
+	"pytest",
+	"mypy",
+	"flake8",
+]
+
 [project.scripts]
 mirrortest = "mirrortest.tooling.cli:run"
 

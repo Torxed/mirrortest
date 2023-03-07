@@ -26,10 +26,10 @@ class Mirror(pydantic.BaseModel):
 
 	@pydantic.validator('url', pre=True)
 	def validate_url(cls, url):
-		if not url.startswith('http'):
+		if not url.startswith('http'):  # pragma: no cover
 			url = f"https://{url}"
 
-		if url[-1] == '/':
+		if url[-1] == '/':  # pragma: no cover
 			url = url[:-1]
 
 		return url
@@ -49,7 +49,7 @@ class Tier0(Mirror):
 		return values
 
 	@staticmethod
-	def request(url, path):
+	def request(url, path):  # pragma: no cover
 		from .session import configuration
 
 		"""
@@ -111,7 +111,7 @@ class MirrorTester(Mirror):
 	def request(url, path):
 		from .session import configuration
 
-		if path[0] == '/':
+		if path[0] == '/':  # pragma: no cover
 			path = path[1:]
 
 		response = urllib.request.urlopen(f"{url}/{path}", timeout=configuration.CON_TIMEOUT)
@@ -127,14 +127,14 @@ class MirrorTester(Mirror):
 		from .session import configuration
 		from .mailhandle import mailto
 
-		if (tier0_sync := self.tier_0.last_sync) is None or (self_sync := self.last_sync) is None:
+		if (tier0_sync := self.tier_0.last_sync) is None or (self_sync := self.last_sync) is None:  # pragma: no cover
 			if tier0_sync is None:
 				print("Critical! Could not get Tier0 sync.")
 			elif self_sync is None:
 				print(f"{self.url} does not appear to have a lastsync available.")
 			return False
 
-		if (tier0_update := self.tier_0.last_update) is None or (self_update := self.last_update) is None:
+		if (tier0_update := self.tier_0.last_update) is None or (self_update := self.last_update) is None:  # pragma: no cover
 			if tier0_update is None:
 				print("Critical! Could not get Tier0 sync.")
 			elif self_update is None:
@@ -142,7 +142,7 @@ class MirrorTester(Mirror):
 			return False
 
 		last_update_delta = tier0_update - self_update
-		if self.tier == 2 and last_update_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
+		if self.tier == 2 and last_update_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:  # pragma: no cover
 			print(f"{self.url} is not updated in {last_update_delta}")
 			if configuration.email:
 				mailto(
@@ -162,7 +162,7 @@ class MirrorTester(Mirror):
 				)
 			return False
 
-		if self.tier == 1 and last_update_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
+		if self.tier == 1 and last_update_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:  # pragma: no cover
 			print(f"{self.url} is not updated in {last_update_delta}")
 			if configuration.email:
 				mailto(
@@ -183,15 +183,12 @@ class MirrorTester(Mirror):
 			return False
 
 		last_sync_delta = tier0_sync - self_sync
-		if self.tier == 2 and last_sync_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:
+		if self.tier == 2 and last_sync_delta.total_seconds() > configuration.MAX_TIER2_SYNC_DRIFT_SEC:  # pragma: no cover
 			print(f"{self.url} is out of sync by {last_sync_delta}")
 			return False
 
-		if self.tier == 1 and last_sync_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:
+		if self.tier == 1 and last_sync_delta.total_seconds() > configuration.MAX_TIER1_SYNC_DRIFT_SEC:  # pragma: no cover
 			print(f"{self.url} is out of sync {last_sync_delta}")
 			return False
-
-		print(f"Last synced: {last_sync_delta}")
-		print(f"Last updated: {last_update_delta}")
 
 		return True

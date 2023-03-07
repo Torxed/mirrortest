@@ -1,0 +1,13 @@
+on: [ push, pull_request ]
+name: pytest test validation
+jobs:
+    pytest:
+        runs-on: ubuntu-latest
+        container:
+            image: archlinux:latest
+            options: --privileged
+        steps:
+            - uses: actions/checkout@v2
+            - run: pacman --noconfirm -Syu python python-pydantic python-pytest python-pytest-cov
+            - name: Test with pytest
+              run: python -m pytest --cov=mirrortest

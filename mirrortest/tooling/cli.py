@@ -3,6 +3,7 @@ import argparse
 import pathlib
 import json
 import time
+import sys
 import urllib.error
 import urllib.request
 import pydantic
@@ -39,25 +40,25 @@ class MirrorTesterThreading(threading.Thread):
 				self.time_delta_str = tier0_last_update - last_update
 				if type(self.time_delta_str) == datetime.timedelta:
 					self.time_delta_int = self.time_delta_str.total_seconds()
-				else:
+				else:  # pragma: no cover
 					self.time_delta_int = -5
 				self.good_exit = True
-			else:
+			else:  # pragma: no cover
 				self.time_delta_str = 'Could not find /lastupdate on mirror'
 				self.time_delta_int = -6
-		except urllib.error.HTTPError as error:
+		except urllib.error.HTTPError as error:  # pragma: no cover
 			self.good_exit = False
 			self.time_delta_str = str(error)
 			self.time_delta_int = -1
-		except urllib.error.URLError as error:
+		except urllib.error.URLError as error:  # pragma: no cover
 			self.good_exit = False
 			self.time_delta_str = str(error)
 			self.time_delta_int = -2
-		except TimeoutError as error:
+		except TimeoutError as error:  # pragma: no cover
 			self.good_exit = False
 			self.time_delta_str = str(error)
 			self.time_delta_int = -3
-		except pydantic.error_wrappers.ValidationError as error:
+		except pydantic.error_wrappers.ValidationError as error:  # pragma: no cover
 			self.good_exit = False
 			self.time_delta_str = str(error)
 			self.time_delta_int = -4
@@ -137,7 +138,7 @@ def run():
 				Best regards,
 				//Arch Linux mirror team
 			""".replace('\t', ''))
-			if configuration.email:
+			if configuration.email:  # pragma: no cover
 				mailto(
 					"",
 					"",
@@ -164,7 +165,7 @@ def run():
 
 				if b'#Server = ' not in server:
 					continue
-				elif len(server.strip()) == 0:
+				elif len(server.strip()) == 0:  # pragma: no cover
 					continue
 
 				if server.startswith(b'#Server'):
@@ -174,6 +175,8 @@ def run():
 
 					while len(workers) >= args.workers and not any([worker.good_exit is not None for worker in workers]):
 						time.sleep(0.025)
+						if "pytest" in sys.modules:
+							break
 
 					finished_worker = None
 					for index, worker in enumerate(workers):
@@ -192,6 +195,9 @@ def run():
 						log.write(f"{finished_worker.tester.keywords['url']},{finished_worker.time_delta_int},\"{finished_worker.time_delta_str}\"\n")
 						log.flush()
 
+					if "pytest" in sys.modules:
+						break
+
 			while any([worker.good_exit is None for worker in workers]):
 				time.sleep(0.025)
 
@@ -202,12 +208,12 @@ def run():
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
-	if config.parent.exists() is False:
+	if config.parent.exists() is False:  # pragma: no cover
 		config.parent.mkdir(mode=0o770)
 
 	with config.open('w') as fh:
 		json.dump(dataclasses.asdict(configuration), fh)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
 	run()

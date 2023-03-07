@@ -6,3 +6,4 @@
 /build
 /*.tar.gz*
 /*.log
+/*.coverage

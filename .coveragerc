@@ -1,0 +1,8 @@
+[run]
+omit =
+    # Omit the stack overflow code we don't want to touch
+    mirrortest/mailhandle.py
+    # Omit the __main__ module hook, it does nothing
+    mirrortest/__main__.py
+    # Omit any __init__ files as they should contain nothing
+    *__init__*
