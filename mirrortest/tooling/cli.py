@@ -2,7 +2,13 @@ import dataclasses
 import argparse
 import pathlib
 import json
+import time
 import urllib.error
+import urllib.request
+import pydantic
+import threading
+import functools
+import datetime
 
 from ..models import (
 	MirrorTester,
@@ -11,6 +17,53 @@ from ..models import (
 
 from ..mailhandle import mailto
 from ..session import configuration
+
+
+class checker(threading.Thread):
+	def __init__(self, frozen_mirror :functools.partial[MirrorTester]):
+		threading.Thread.__init__(self)
+
+		self.tester = frozen_mirror
+		self.mirror_tester :MirrorTester | None = None
+		self.good_exit : bool | None = None
+		self.time_delta_str : datetime.timedelta | str | None = None
+		self.time_delta_int : float | None = None
+		self.start()
+
+	def run(self) -> None:
+		try:
+			self.mirror_tester = self.tester()
+			self.good_exit = self.mirror_tester.valid
+
+			if self.mirror_tester and (last_update := self.mirror_tester.last_update) and (tier0_last_update := self.mirror_tester.tier_0.last_update):  # type: ignore
+				self.time_delta_str = tier0_last_update - last_update
+				if type(self.time_delta_str) == datetime.timedelta:
+					self.time_delta_int = self.time_delta_str.total_seconds()
+				else:
+					self.time_delta_int = -5
+				self.good_exit = True
+			else:
+				self.time_delta_str = 'Could not find /lastupdate on mirror'
+				self.time_delta_int = -6
+		except urllib.error.HTTPError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -1
+		except urllib.error.URLError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -2
+		except TimeoutError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -3
+		except pydantic.error_wrappers.ValidationError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -4
+
+		self.good_exit = False
+
 
 # Parse script arguments and use defaults from configuration where needed
 main_options = argparse.ArgumentParser(description="Test the health of a given mirror.", add_help=True)
@@ -47,40 +100,105 @@ main_options.add_argument(
 	action="store_true",
 	help="Attempts to open your mail client of choice with a prepped message"
 )
+main_options.add_argument(
+	"--workers",
+	required=False,
+	default=1,
+	type=int,
+	nargs="?",
+	help="When --mirror is set to '*', how many paralell workers do you want?"
+)
 args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
 
 
 def run() -> None:
-	try:
-		good_exit = MirrorTester(tier=args.tier, url=args.mirror, tier_0=Tier0(url=args.tier0)).valid
-	except urllib.error.HTTPError as error:
-		good_exit = False
-		print(f"""
-			Hi!
+	tier_0 = Tier0(url=args.tier0)
 
-			Your mirror {args.mirror} returns {error.code} and has therefor been marked as inactive.
-			Please correct this and get back to us if you wish to re-activate the mirror.
+	if args.mirror != '*':
+		_error :urllib.error.URLError | urllib.error.HTTPError | None = None
+		_error_code = -1
+		try:
+			MirrorTester(tier=args.tier, url=args.mirror, tier_0=tier_0).valid
+		except urllib.error.HTTPError as error:
+			_error = error
+			_error_code = error.code
+		except urllib.error.URLError as error:
+			_error = error
+			_error_code = -1
 
-			Best regards,
-			//Arch Linux mirror team
-		""".replace('\t', ''))
-		if configuration.email:
-			mailto(
-				"",
-				"",
-				"mirrors@archlinux.org",
-				None,
-				f"Arch Linux mirror {args.mirror} is out of date",
-				f"""Hi!
+		if _error:
+			print(f"""
+				Hi!
 
-				Your mirror {args.mirror} returns {error.code}.
-				Please correct this and notify us.
+				Your mirror {args.mirror} returns {_error_code} and has therefor been marked as inactive.
+				Please correct this and get back to us if you wish to re-activate the mirror.
 
-				The mirror has been marked as inactive for now.
+				Best regards,
+				//Arch Linux mirror team
+			""".replace('\t', ''))
+			if configuration.email:
+				mailto(
+					"",
+					"",
+					"mirrors@archlinux.org",
+					None,
+					f"Arch Linux mirror {args.mirror} is out of date",
+					f"""Hi!
 
-				//Arch Linux mirror admins""".replace('\t', '')
-			)
+					Your mirror {args.mirror} returns {_error_code}.
+					Please correct this and notify us.
+
+					The mirror has been marked as inactive for now.
+
+					//Arch Linux mirror admins""".replace('\t', '')
+				)
+	else:
+		# Retrieve complete mirror list
+		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
+		data = response.read()
+		workers :list[checker] = []
+
+		with open(f'output_{time.time()}.log', 'w') as log:
+			for server in data.split(b'\n'):
+
+				if b'#Server = ' not in server:
+					continue
+				elif len(server.strip()) == 0:
+					continue
+
+				if server.startswith(b'#Server'):
+					_, url = server.split(b'=', 1)
+					url, _ = url.split(b'/$repo', 1)
+					url = url.strip().decode()
+
+					while len(workers) >= args.workers and not any([worker.good_exit is not None for worker in workers]):
+						time.sleep(0.025)
+
+					finished_worker = None
+					for index, worker in enumerate(workers):
+						if worker.good_exit is not None:
+							finished_worker = workers.pop(index)
+							break
+
+					# Spawn a new worker
+					workers.append(checker(functools.partial(MirrorTester, tier=2, url=url, tier_0=tier_0)))
+
+					# And process the old one
+					if finished_worker is None:
+						continue
+
+					if not finished_worker.good_exit:
+						log.write(f"{finished_worker.tester.keywords['url']},{finished_worker.time_delta_int},\"{finished_worker.time_delta_str}\"\n")
+						log.flush()
+
+			while any([worker.good_exit is None for worker in workers]):
+				time.sleep(0.025)
+
+			for worker in workers:
+				if not worker.good_exit:
+					log.write(f"{worker.tester.keywords['url']},{worker.time_delta_int},\"{worker.time_delta_str}\"\n")
+					log.flush()
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
@@ -89,9 +207,6 @@ def run() -> None:
 
 	with config.open('w') as fh:
 		json.dump(dataclasses.asdict(configuration), fh)
-
-	# Signal to the caller our run
-	exit(0 if good_exit else 1)
 
 
 if __name__ == '__main__':
