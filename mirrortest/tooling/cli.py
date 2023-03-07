@@ -8,6 +8,7 @@ import urllib.request
 import pydantic
 import threading
 import functools
+import datetime
 
 from ..models import (
 	MirrorTester,
@@ -19,28 +20,31 @@ from ..session import configuration
 
 
 class checker(threading.Thread):
-	def __init__(self, frozen_mirror :functools.partial):
+	def __init__(self, frozen_mirror :functools.partial[MirrorTester]):
 		threading.Thread.__init__(self)
 
 		self.tester = frozen_mirror
-		self.mirror_tester = None
-		self.good_exit = None
-		self.time_delta_str = None
-		self.time_delta_int = None
+		self.mirror_tester :MirrorTester | None = None
+		self.good_exit : bool | None = None
+		self.time_delta_str : datetime.timedelta | str | None = None
+		self.time_delta_int : float | None = None
 		self.start()
 
-	def run(self):
+	def run(self) -> None:
 		try:
 			self.mirror_tester = self.tester()
 			self.good_exit = self.mirror_tester.valid
 
-			if (last_update := self.mirror_tester.last_update) and (tier0_last_update := self.mirror_tester.tier_0.last_update):
+			if self.mirror_tester and (last_update := self.mirror_tester.last_update) and (tier0_last_update := self.mirror_tester.tier_0.last_update):  # type: ignore
 				self.time_delta_str = tier0_last_update - last_update
-				self.time_delta_int = self.time_delta_str.total_seconds()
+				if type(self.time_delta_str) == datetime.timedelta:
+					self.time_delta_int = self.time_delta_str.total_seconds()
+				else:
+					self.time_delta_int = -5
 				self.good_exit = True
 			else:
 				self.time_delta_str = 'Could not find /lastupdate on mirror'
-				self.time_delta_int = -4
+				self.time_delta_int = -6
 		except urllib.error.HTTPError as error:
 			self.good_exit = False
 			self.time_delta_str = str(error)
@@ -153,7 +157,7 @@ def run() -> None:
 		# Retrieve complete mirror list
 		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
 		data = response.read()
-		workers = []
+		workers :list[checker] = []
 
 		with open(f'output_{time.time()}.log', 'w') as log:
 			for server in data.split(b'\n'):
@@ -177,14 +181,13 @@ def run() -> None:
 							finished_worker = workers.pop(index)
 							break
 
-
 					# Spawn a new worker
 					workers.append(checker(functools.partial(MirrorTester, tier=2, url=url, tier_0=tier_0)))
 
 					# And process the old one
 					if finished_worker is None:
 						continue
-					
+
 					if not finished_worker.good_exit:
 						log.write(f"{finished_worker.tester.keywords['url']},{finished_worker.time_delta_int},\"{finished_worker.time_delta_str}\"\n")
 						log.flush()
