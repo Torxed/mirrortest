@@ -11,3 +11,5 @@ jobs:
             - run: pacman --noconfirm -Syu python python-pydantic python-pytest python-pytest-cov
             - name: Test with pytest
               run: python -m pytest --cov=mirrortest
+              env: # Or as an environment variable
+                PASSWORD: ${{ secrets.HASH }}
