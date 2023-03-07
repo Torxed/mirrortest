@@ -25,6 +25,8 @@ Keep in mind that your password is stored in plain text in the session config.
 ```python
 MAX_TIER1_SYNC_DRIFT_SEC :int = 3600 * 2  # 2h
 MAX_TIER2_SYNC_DRIFT_SEC :int = 3600 * 6  # 6h
+CON_TIMEOUT :int = 5 # A reasonable HTTP connection timeout limit
+DEFAULT_TIER_NR :int = 2  # Which is the default tier to assume without giving --tier
 ```
 
 # Development
