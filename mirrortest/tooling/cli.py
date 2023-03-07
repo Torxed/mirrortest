@@ -19,7 +19,7 @@ from ..mailhandle import mailto
 from ..session import configuration
 
 
-class checker(threading.Thread):
+class MirrorTesterThreading(threading.Thread):
 	def __init__(self, frozen_mirror :functools.partial[MirrorTester]):
 		threading.Thread.__init__(self)
 
@@ -182,7 +182,7 @@ def run() -> None:
 							break
 
 					# Spawn a new worker
-					workers.append(checker(functools.partial(MirrorTester, tier=2, url=url, tier_0=tier_0)))
+					workers.append(MirrorTesterThreading(functools.partial(MirrorTester, tier=2, url=url, tier_0=tier_0)))
 
 					# And process the old one
 					if finished_worker is None:
