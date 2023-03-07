@@ -209,10 +209,11 @@ def run():
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
 	if config.parent.exists() is False:  # pragma: no cover
-		config.parent.mkdir(mode=0o770)
+		config.parent.mkdir(mode=0o770, parents=True)
 
-	with config.open('w') as fh:
-		json.dump(dataclasses.asdict(configuration), fh)
+	if config.parent.exists():
+		with config.open('w') as fh:
+			json.dump(dataclasses.asdict(configuration), fh)
 
 
 if __name__ == '__main__':  # pragma: no cover
