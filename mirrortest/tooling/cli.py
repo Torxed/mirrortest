@@ -24,13 +24,13 @@ class MirrorTesterThreading(threading.Thread):
 		threading.Thread.__init__(self)
 
 		self.tester = frozen_mirror
-		self.mirror_tester :MirrorTester | None = None
-		self.good_exit : bool | None = None
-		self.time_delta_str : datetime.timedelta | str | None = None
-		self.time_delta_int : float | None = None
+		self.mirror_tester = None
+		self.good_exit = None
+		self.time_delta_str = None
+		self.time_delta_int = None
 		self.start()
 
-	def run(self) -> None:
+	def run(self):
 		try:
 			self.mirror_tester = self.tester()
 			self.good_exit = self.mirror_tester.valid
@@ -70,7 +70,7 @@ main_options = argparse.ArgumentParser(description="Test the health of a given m
 main_options.add_argument(
 	"--tier",
 	type=int,
-	default=configuration.DEFAULT_TIER_NR,
+	default=1,
 	nargs="?",
 	help="Dictates what Tier the mirror you're testing is"
 )
@@ -112,11 +112,11 @@ args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
 
 
-def run() -> None:
+def run():
 	tier_0 = Tier0(url=args.tier0)
 
 	if args.mirror != '*':
-		_error :urllib.error.URLError | urllib.error.HTTPError | None = None
+		_error = None
 		_error_code = -1
 		try:
 			MirrorTester(tier=args.tier, url=args.mirror, tier_0=tier_0).valid
@@ -157,7 +157,7 @@ def run() -> None:
 		# Retrieve complete mirror list
 		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
 		data = response.read()
-		workers :list[checker] = []
+		workers :list[MirrorTesterThreading] = []
 
 		with open(f'output_{time.time()}.log', 'w') as log:
 			for server in data.split(b'\n'):
