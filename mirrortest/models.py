@@ -100,8 +100,10 @@ class MirrorTester(Mirror):
 		So we will update the dictionary of values before being set
 		as class properties (pydantic quirk).
 		"""
-		values['last_sync'] = datetime.datetime.fromtimestamp(int(MirrorTester.request(str(values['url']), '/lastsync').strip()))
-		values['last_update'] = datetime.datetime.fromtimestamp(int(MirrorTester.request(str(values['url']), '/lastupdate').strip()))
+		if last_sync_request := MirrorTester.request(str(values['url']), '/lastsync').strip():
+			values['last_sync'] = datetime.datetime.fromtimestamp(int(last_sync_request))
+		if last_update_request := MirrorTester.request(str(values['url']), '/lastupdate').strip():
+			values['last_update'] = datetime.datetime.fromtimestamp(int(last_update_request))
 
 		return values
 

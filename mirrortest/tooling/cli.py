@@ -5,6 +5,9 @@ import json
 import time
 import urllib.error
 import urllib.request
+import pydantic
+import threading
+import functools
 
 from ..models import (
 	MirrorTester,
@@ -13,6 +16,50 @@ from ..models import (
 
 from ..mailhandle import mailto
 from ..session import configuration
+
+
+class checker(threading.Thread):
+	def __init__(self, frozen_mirror :functools.partial):
+		threading.Thread.__init__(self)
+
+		self.tester = frozen_mirror
+		self.mirror_tester = None
+		self.good_exit = None
+		self.time_delta_str = None
+		self.time_delta_int = None
+		self.start()
+
+	def run(self):
+		try:
+			self.mirror_tester = self.tester()
+			self.good_exit = self.mirror_tester.valid
+
+			if (last_update := self.mirror_tester.last_update) and (tier0_last_update := self.mirror_tester.tier_0.last_update):
+				self.time_delta_str = tier0_last_update - last_update
+				self.time_delta_int = self.time_delta_str.total_seconds()
+				self.good_exit = True
+			else:
+				self.time_delta_str = 'Could not find /lastupdate on mirror'
+				self.time_delta_int = -4
+		except urllib.error.HTTPError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -1
+		except urllib.error.URLError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -2
+		except TimeoutError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -3
+		except pydantic.error_wrappers.ValidationError as error:
+			self.good_exit = False
+			self.time_delta_str = str(error)
+			self.time_delta_int = -4
+
+		self.good_exit = False
+
 
 # Parse script arguments and use defaults from configuration where needed
 main_options = argparse.ArgumentParser(description="Test the health of a given mirror.", add_help=True)
@@ -48,6 +95,14 @@ main_options.add_argument(
 	default=False,
 	action="store_true",
 	help="Attempts to open your mail client of choice with a prepped message"
+)
+main_options.add_argument(
+	"--workers",
+	required=False,
+	default=1,
+	type=int,
+	nargs="?",
+	help="When --mirror is set to '*', how many paralell workers do you want?"
 )
 args, unknown = main_options.parse_known_args()
 configuration.email = args.mail
@@ -98,6 +153,7 @@ def run() -> None:
 		# Retrieve complete mirror list
 		response = urllib.request.urlopen("https://archlinux.org/mirrorlist/all/")
 		data = response.read()
+		workers = []
 
 		with open(f'output_{time.time()}.log', 'w') as log:
 			for server in data.split(b'\n'):
@@ -112,32 +168,34 @@ def run() -> None:
 					url, _ = url.split(b'/$repo', 1)
 					url = url.strip().decode()
 
-					try:
-						mirror = MirrorTester(tier=2, url=url, tier_0=tier_0)
-						good_exit = mirror.valid
+					while len(workers) >= args.workers and not any([worker.good_exit is not None for worker in workers]):
+						time.sleep(0.025)
 
-						if last_update := mirror.last_update:  # type: ignore
-							time_delta_str = tier_0.last_update - last_update  # type: ignore
-							time_delta_int = time_delta_str.total_seconds()
-						else:
-							time_delta_str = 'Could not find /lastupdate on mirror'
-							time_delta_int = -4
-					except urllib.error.HTTPError as error:
-						good_exit = False
-						time_delta_str = str(error)
-						time_delta_int = -1
-					except urllib.error.URLError as error:
-						good_exit = False
-						time_delta_str = str(error)
-						time_delta_int = -2
-					except TimeoutError as error:
-						good_exit = False
-						time_delta_str = str(error)
-						time_delta_int = -3
+					finished_worker = None
+					for index, worker in enumerate(workers):
+						if worker.good_exit is not None:
+							finished_worker = workers.pop(index)
+							break
 
-					if not good_exit:
-						log.write(f"{url},{time_delta_int},\"{time_delta_str}\"\n")
+
+					# Spawn a new worker
+					workers.append(checker(functools.partial(MirrorTester, tier=2, url=url, tier_0=tier_0)))
+
+					# And process the old one
+					if finished_worker is None:
+						continue
+					
+					if not finished_worker.good_exit:
+						log.write(f"{finished_worker.tester.keywords['url']},{finished_worker.time_delta_int},\"{finished_worker.time_delta_str}\"\n")
 						log.flush()
+
+			while any([worker.good_exit is None for worker in workers]):
+				time.sleep(0.025)
+
+			for worker in workers:
+				if not worker.good_exit:
+					log.write(f"{worker.tester.keywords['url']},{worker.time_delta_int},\"{worker.time_delta_str}\"\n")
+					log.flush()
 
 	# Upon exiting, store the given configuration used
 	config = pathlib.Path('~/.config/mirrortester/config.json').expanduser()
@@ -146,9 +204,6 @@ def run() -> None:
 
 	with config.open('w') as fh:
 		json.dump(dataclasses.asdict(configuration), fh)
-
-	# Signal to the caller our run
-	exit(0 if good_exit else 1)
 
 
 if __name__ == '__main__':
