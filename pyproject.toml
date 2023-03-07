@@ -33,3 +33,6 @@ mirrortest = "mirrortest.tooling.cli:run"
 
 [tool.setuptools.dynamic]
 version = {attr = "mirrortest.__version__"}
+
+[tool.mypy]
+exclude = ['venv', '.venv', 'tests']
