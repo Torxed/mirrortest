@@ -35,4 +35,4 @@ mirrortest = "mirrortest.tooling.cli:run"
 version = {attr = "mirrortest.__version__"}
 
 [tool.mypy]
-exclude = ['venv', '.venv', 'tests']
+exclude = ['venv', '.venv', 'tests', 'build']
