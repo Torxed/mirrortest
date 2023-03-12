@@ -7,6 +7,7 @@ authors = [
 	{name = "Anton Hvornum", email = "anton@hvornum.se"}
 ]
 description = "Test the health of a given mirror."
+homepage = "https://github.com/Torxed/mirrortest.git"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["arch", "linux", "mirror", "test", "health", "sync"]
