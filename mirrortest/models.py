@@ -36,7 +36,7 @@ class Mirror(pydantic.BaseModel):
 
 
 class Tier0(Mirror):
-	@pydantic.root_validator
+	@pydantic.model_validator(mode='before')
 	def update_times(cls, values):
 		"""
 		At this stage, the class is not instanciated.
@@ -93,7 +93,7 @@ class MirrorTester(Mirror):
 	tier :int
 	tier_0 :Tier0
 
-	@pydantic.root_validator
+	@pydantic.model_validator(mode='before')
 	def update_times(cls, values):
 		"""
 		At this stage, the class is not instanciated.
